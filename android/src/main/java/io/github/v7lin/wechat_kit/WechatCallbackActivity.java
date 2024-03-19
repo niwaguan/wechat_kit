@@ -25,8 +25,13 @@ public final class WechatCallbackActivity extends Activity {
 
     private void handleIntent(Intent intent) {
         final Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+        if (launchIntent == null) {
+            return;
+        }
         launchIntent.putExtra(KEY_WECHAT_CALLBACK, true);
-        launchIntent.putExtra(KEY_WECHAT_EXTRA, intent);
+        if (intent != null) {
+            launchIntent.putExtra(KEY_WECHAT_EXTRA, intent);
+        }
 //        launchIntent.setPackage(getPackageName());
         launchIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         startActivity(launchIntent);
