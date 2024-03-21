@@ -1,0 +1,1 @@
+wechat_kit.podspec

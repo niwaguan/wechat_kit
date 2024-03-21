@@ -16,6 +16,14 @@ options_dict = {}
 OptionParser.new do |options|
     options.banner = "Setup the Wechat to an Xcode target."
 
+    options.on("-k", "--appIdKey=APPIDKEY", String, "AppId environment key for Wechat") do |opts|
+        options_dict[:app_id_key] = opts
+    end
+
+    options.on("-l", "--universalLinkKey=UNIVERSALLINKKEY", String, "Universal Link environment key for Wechat") do |opts|
+        options_dict[:universal_link_key] = opts
+    end
+
     options.on("-p", "--projectDirectory=DIRECTORY", String, "Directory of the Xcode project") do |dir|
         options_dict[:project_dir] = dir
     end
@@ -50,8 +58,11 @@ project = Xcodeproj::Project.open(project_path)
 project.targets.each do |target|
     if target.name == "Runner"
         app_id = options_dict[:app_id]
+        app_id_key = options_dict[:app_id_key]
         universal_link = options_dict[:universal_link]
-        applinks = "applinks:#{URI.parse(universal_link).host}"
+        universal_link_key = options_dict[:universal_link_key]
+        use_environment_key = (app_id_key and universal_link_key)
+        applinks = use_environment_key ? "applinks:@(#{universal_link_key})" : "applinks:#{URI.parse(universal_link).host}"
 
         sectionObject = {}
         project.objects.each do |object|
@@ -78,12 +89,12 @@ project.targets.each do |target|
                 urlTypes = []
                 result["CFBundleURLTypes"] = urlTypes
             end
-            isUrlTypeExist = urlTypes.any? { |urlType| urlType["CFBundleURLSchemes"] && (urlType["CFBundleURLSchemes"].include? app_id) }
+            isUrlTypeExist = urlTypes.any? { |urlType| urlType["CFBundleURLSchemes"] && (use_environment_key ? urlType["CFBundleURLSchemes"].include?(app_id_key) : urlType["CFBundleURLSchemes"].include?(app_id)) }
             if !isUrlTypeExist
                 urlTypes << {
                     "CFBundleTypeRole": "Editor",
                     "CFBundleURLName": "weixin",
-                    "CFBundleURLSchemes": [ app_id ]
+                    "CFBundleURLSchemes": use_environment_key ? "@(#{app_id_key})" : [ app_id ]
                 }
                 File.write(infoplistFile, Plist::Emit.dump(result))
             end
@@ -138,7 +149,7 @@ project.targets.each do |target|
                 result = {}
             end
             domains = result["com.apple.developer.associated-domains"]
-            if !domains
+            unless domains
                 domains = []
                 result["com.apple.developer.associated-domains"] = domains
             end
